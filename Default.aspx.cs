@@ -10,6 +10,7 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Xml.Linq;
+using Newtonsoft.Json;
 
 
 public partial class _Default : System.Web.UI.Page
@@ -29,6 +30,8 @@ public partial class _Default : System.Web.UI.Page
         string cidade = "";
         string uf = "";
         string cep = "";
+        double latitude = 0.0;
+        double longitude = 0.0;
 
         try
         {
@@ -64,25 +67,43 @@ public partial class _Default : System.Web.UI.Page
                             uf = dr2.GetString(6);
                             cep = dr2.GetString(7);
                             if (cep.Equals("99999999"))
-                            //Procurar o CEP no Google e a latitude e a longitude
                             {
-                                string url = @"https://maps.google.com/maps/api/geocode/json?address=" + endereco + "," + numero + ","+ cidade + "," + uf + "components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg";
-                               // string url = @"https://maps.google.com/maps/api/geocode/json?address=Rua+Tenente+%20Galdino%20+%20Pinheiro%20+%20Franco,264,+Mogi+das%20+%20Cruzes%20,SP%20&components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg";
-;
-                                WebRequest request = WebRequest.Create(url);
+                                //Procurar o CEP no Google e a latitude e a longitude
+                                using (var webClient = new WebClient())
+                                {
+                                    string rawJason =webClient.DownloadString( "https://maps.google.com/maps/api/geocode/json?address=" + endereco + "," + numero + "," + cidade + "," + uf + "components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg");
+                                    // string url = @"https://maps.google.com/maps/api/geocode/json?address=Rua+Tenente+%20Galdino%20+%20Pinheiro%20+%20Franco,264,+Mogi+das%20+%20Cruzes%20,SP%20&components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg";
 
-                                WebResponse response = request.GetResponse();
+                                   
 
-                                Stream data = response.GetResponseStream();
+                                    RootObject root = JsonConvert.DeserializeObject<RootObject>(rawJason);
+                                    foreach (var item in root.results)
+                                    {
+                                        cep = item.address_components[6].short_name;
+                                        latitude = item.geometry.location.lat;
+                                        longitude = item.geometry.location.lng;
+                                    }
+                                  
+                                }
+                            }
+                            else
+                            {
+                                //Procurar o CEP no Google e a latitude e a longitude
+                                using (var webClient = new WebClient())
+                                {
+                                    string rawJason = webClient.DownloadString("https://maps.google.com/maps/api/geocode/json?address=" + endereco + "," + numero + "," + cidade + "," + uf + "components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg");
+                                    // string url = @"https://maps.google.com/maps/api/geocode/json?address=Rua+Tenente+%20Galdino%20+%20Pinheiro%20+%20Franco,264,+Mogi+das%20+%20Cruzes%20,SP%20&components=country:BR%20&key=AIzaSyBOo3iqhE-w8xZaVC-PGJfvk8Rrx51suVg";
 
-                                StreamReader reader = new StreamReader(data);
 
-                                // json-formatted string from maps api
-                                string responseFromServer = reader.ReadToEnd();
-                                
 
-                                response.Close();
-                       
+                                    RootObject root = JsonConvert.DeserializeObject<RootObject>(rawJason);
+                                    foreach (var item in root.results)
+                                    {
+                                        latitude = item.geometry.location.lat;
+                                        longitude = item.geometry.location.lng;
+                                    }
+
+                                }
                             }
                         }
                     }
